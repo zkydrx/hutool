@@ -51,6 +51,8 @@ public class DialectFactory {
 	public final static String DRIVER_DERBY_EMBEDDED = "org.apache.derby.jdbc.EmbeddedDriver";
 	/** JDBC 驱动 HSQLDB */
 	public final static String DRIVER_HSQLDB = "org.hsqldb.jdbc.JDBCDriver";
+	/** JDBC 驱动 达梦7 */
+	public final static String DRIVER_DM7 = "dm.jdbc.driver.DmDriver";
 	
 	private static Map<DataSource, Dialect> dialectPool = new ConcurrentHashMap<>();
 	private static Object lock = new Object();
@@ -109,7 +111,7 @@ public class DialectFactory {
 			return null;
 		}
 		// 全部转为小写，忽略大小写
-		nameContainsProductInfo = nameContainsProductInfo.toLowerCase();
+		nameContainsProductInfo = StrUtil.cleanBlank(nameContainsProductInfo.toLowerCase());
 
 		String driver = null;
 		if (nameContainsProductInfo.contains("mysql")) {
@@ -135,6 +137,9 @@ public class DialectFactory {
 		} else if (nameContainsProductInfo.contains("hsqldb")) {
 			// HSQLDB
 			driver = DRIVER_HSQLDB;
+		} else if (nameContainsProductInfo.contains("dm")) {
+			// 达梦7
+			driver = DRIVER_DM7;
 		}
 
 		return driver;

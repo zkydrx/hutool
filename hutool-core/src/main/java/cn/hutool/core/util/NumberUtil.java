@@ -1024,7 +1024,7 @@ public class NumberUtil {
 	 * @since 3.0.9
 	 */
 	public static String decimalFormatMoney(double value) {
-		return decimalFormat(",###", value);
+		return decimalFormat(",##0.00", value);
 	}
 
 	/**
@@ -1154,7 +1154,7 @@ public class NumberUtil {
 	 */
 	public static boolean isInteger(String s) {
 		try {
-			parseInt(s);
+			Integer.parseInt(s);
 		} catch (NumberFormatException e) {
 			return false;
 		}
@@ -1171,7 +1171,7 @@ public class NumberUtil {
 	 */
 	public static boolean isLong(String s) {
 		try {
-			parseLong(s);
+			Long.parseLong(s);
 		} catch (NumberFormatException e) {
 			return false;
 		}
@@ -2137,9 +2137,6 @@ public class NumberUtil {
 		if (StrUtil.startWithIgnoreCase(number, "0x")) {
 			// 0x04表示16进制数
 			return Integer.parseInt(number.substring(2), 16);
-		} else if (number.startsWith("0") && number.length() > 1) {
-			// 04表示8进制数
-			return Integer.parseInt(number.substring(1), 8);
 		}
 
 		return Integer.parseInt(removeNumberFlag(number));
@@ -2173,10 +2170,8 @@ public class NumberUtil {
 		if (number.startsWith("0x")) {
 			// 0x04表示16进制数
 			return Long.parseLong(number.substring(2), 16);
-		} else if (number.startsWith("0") && number.length() > 1) {
-			// 04表示8进制数
-			return Long.parseLong(number.substring(1), 8);
 		}
+
 		return Long.parseLong(removeNumberFlag(number));
 	}
 
@@ -2194,6 +2189,114 @@ public class NumberUtil {
 		} catch (ParseException e) {
 			throw new UtilException(e);
 		}
+	}
+
+	/**
+	 * int值转byte数组，使用大端字节序（高位字节在前，低位字节在后）<br>
+	 * 见：http://www.ruanyifeng.com/blog/2016/11/byte-order.html
+	 * 
+	 * @param value 值
+	 * @return byte数组
+	 * @since 4.4.5
+	 */
+	public static byte[] toBytes(int value) {
+		final byte[] result = new byte[4];
+
+		result[0] = (byte) (value >> 24);
+		result[1] = (byte) (value >> 16);
+		result[2] = (byte) (value >> 8);
+		result[3] = (byte) (value /* >> 0 */);
+
+		return result;
+	}
+
+	/**
+	 * byte数组转int，使用大端字节序（高位字节在前，低位字节在后）<br>
+	 * 见：http://www.ruanyifeng.com/blog/2016/11/byte-order.html
+	 * 
+	 * @param bytes
+	 * @return int
+	 * @since 4.4.5
+	 */
+	public static int toInt(byte[] bytes) {
+		return (bytes[0] & 0xff) << 24//
+				| (bytes[1] & 0xff) << 16//
+				| (bytes[2] & 0xff) << 8//
+				| (bytes[3] & 0xff);
+	}
+
+	/**
+	 * 以无符号字节数组的形式返回传入值。
+	 * 
+	 * @param value 需要转换的值
+	 * @return 无符号bytes
+	 * @since 4.5.0
+	 */
+	public static byte[] toUnsignedByteArray(BigInteger value) {
+		byte[] bytes = value.toByteArray();
+
+		if (bytes[0] == 0) {
+			byte[] tmp = new byte[bytes.length - 1];
+			System.arraycopy(bytes, 1, tmp, 0, tmp.length);
+
+			return tmp;
+		}
+
+		return bytes;
+	}
+
+	/**
+	 * 以无符号字节数组的形式返回传入值。
+	 * 
+	 * @param length bytes长度
+	 * @param value 需要转换的值
+	 * @return 无符号bytes
+	 * @since 4.5.0
+	 */
+	public static byte[] toUnsignedByteArray(int length, BigInteger value) {
+		byte[] bytes = value.toByteArray();
+		if (bytes.length == length) {
+			return bytes;
+		}
+
+		int start = bytes[0] == 0 ? 1 : 0;
+		int count = bytes.length - start;
+
+		if (count > length) {
+			throw new IllegalArgumentException("standard length exceeded for value");
+		}
+
+		byte[] tmp = new byte[length];
+		System.arraycopy(bytes, start, tmp, tmp.length - count, count);
+		return tmp;
+	}
+
+	/**
+	 * 无符号bytes转{@link BigInteger}
+	 * 
+	 * @param buf buf 无符号bytes
+	 * @return {@link BigInteger}
+	 * @since 4.5.0
+	 */
+	public static BigInteger fromUnsignedByteArray(byte[] buf) {
+		return new BigInteger(1, buf);
+	}
+
+	/**
+	 * 无符号bytes转{@link BigInteger}
+	 * 
+	 * @param buf 无符号bytes
+	 * @param off 起始位置
+	 * @param length 长度
+	 * @return {@link BigInteger}
+	 */
+	public static BigInteger fromUnsignedByteArray(byte[] buf, int off, int length) {
+		byte[] mag = buf;
+		if (off != 0 || length != buf.length) {
+			mag = new byte[length];
+			System.arraycopy(buf, off, mag, 0, length);
+		}
+		return new BigInteger(1, mag);
 	}
 
 	// ------------------------------------------------------------------------------------------- Private method start
@@ -2215,6 +2318,7 @@ public class NumberUtil {
 
 	/**
 	 * 去掉数字尾部的数字标识，例如12D，44.0F，22L中的最后一个字母
+	 * 
 	 * @param number 数字字符串
 	 * @return 去掉标识的字符串
 	 */

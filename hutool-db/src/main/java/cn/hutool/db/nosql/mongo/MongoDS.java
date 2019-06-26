@@ -15,7 +15,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import cn.hutool.core.exceptions.NotInitedException;
-import cn.hutool.core.util.NetUtil;
+import cn.hutool.core.net.NetUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.db.DbRuntimeException;
 import cn.hutool.log.Log;
@@ -293,7 +293,10 @@ public class MongoDS implements Closeable {
 	 * @since 4.1.20
 	 */
 	private MongoCredential createCredentail(String group) {
-		final Setting setting = checkSetting();
+		final Setting setting = this.setting;
+		if(null == setting) {
+			return null;
+		}
 		final String user = setting.getStr("user", group, setting.getStr("user"));
 		final String pass = setting.getStr("pass", group, setting.getStr("pass"));
 		final String database = setting.getStr("database", group, setting.getStr("database"));
